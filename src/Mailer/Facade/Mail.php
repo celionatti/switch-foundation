@@ -29,9 +29,19 @@ class Mail
         return MailManager::getInstance()->to($address, $name);
     }
 
-    public static function send(Mailable $mailable): bool
+    public static function send(Mailable $mailable): bool|string|int
     {
         return MailManager::getInstance()->send($mailable);
+    }
+
+    public static function sendNow(Mailable $mailable): bool
+    {
+        return MailManager::getInstance()->sendNow($mailable);
+    }
+
+    public static function queue(Mailable $mailable): string|int
+    {
+        return MailManager::getInstance()->queue($mailable);
     }
 
     public static function raw(string $text, callable $callback): bool

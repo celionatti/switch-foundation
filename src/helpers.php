@@ -117,3 +117,33 @@ if (!function_exists('response_json')) {
         return ApiResponse::success($data, $message, $status, $meta);
     }
 }
+
+if (!function_exists('notify')) {
+    /**
+     * Send a notification to notifiables.
+     */
+    function notify(mixed $notifiables, \Switch\Foundation\Notification\Notification $notification, ?array $channels = null): void
+    {
+        \Switch\Foundation\Notification\Facade\Notification::send($notifiables, $notification, $channels);
+    }
+}
+
+if (!function_exists('notification')) {
+    /**
+     * Get the NotificationManager instance.
+     */
+    function notification(): \Switch\Foundation\Notification\NotificationManager
+    {
+        return \Switch\Foundation\Notification\NotificationManager::getInstance();
+    }
+}
+
+if (!function_exists('notification_stream')) {
+    /**
+     * Render the zero-config client-side SSE script.
+     */
+    function notification_stream(string $streamUrl = '/api/notifications/stream'): string
+    {
+        return \Switch\Foundation\Notification\Realtime\NotificationStream::renderScript($streamUrl);
+    }
+}

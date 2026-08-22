@@ -34,7 +34,25 @@ class PendingMail
         return $this;
     }
 
-    public function send(Mailable $mailable): bool
+    public function send(Mailable $mailable): bool|string|int
+    {
+        $this->fillRecipients($mailable);
+        return $this->manager->send($mailable);
+    }
+
+    public function sendNow(Mailable $mailable): bool
+    {
+        $this->fillRecipients($mailable);
+        return $this->manager->sendNow($mailable);
+    }
+
+    public function queue(Mailable $mailable): string|int
+    {
+        $this->fillRecipients($mailable);
+        return $this->manager->queue($mailable);
+    }
+
+    private function fillRecipients(Mailable $mailable): void
     {
         foreach ($this->to as $recipient) {
             $mailable->to($recipient['address'], $recipient['name']);
@@ -45,7 +63,5 @@ class PendingMail
         foreach ($this->bcc as $recipient) {
             $mailable->bcc($recipient['address'], $recipient['name']);
         }
-
-        return $this->manager->send($mailable);
     }
 }

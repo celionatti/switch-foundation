@@ -10,9 +10,10 @@
 - ⚡ **Cache Engine** (File, Array, Database, Redis multi-driver caching, tagged invalidation & `remember()`)
 - 📂 **Storage & Filesystem** (Local & Public Disks, File Uploads, Mime Types, Streaming)
 - 🖼️ **Image Processing** (Native GD Resizing, Cropping, Smart Fitting, WebP/AVIF conversions, Watermarks)
-- 📬 **Mailer** (SMTP, Sendmail, Log, Array transports, Mailables with Switch View template rendering)
+- 📬 **Mailer & Queued Emails** (SMTP, Sendmail, Log, Array transports, Mailables with automatic background queueing)
 - ⏱️ **Queue System** (Sync, Database, Array drivers, Job Dispatchers, Retry handling & CLI Worker)
 - 🚀 **API & Rate Limiting** (JsonResource, ResourceCollection, Standardized Responses, Token Bucket Throttling)
+- 📢 **Real-Time Notifications** (Multi-Channel: Database, Mail, Broadcast, SSE Server-Sent Events, JavaScript client bridge)
 
 ---
 
@@ -121,13 +122,15 @@ Image::load('photo.jpg')
 
 ---
 
-## 📬 5. Mailer
+## 📬 5. Mailer & Automatic Queued Emails
 
 ```php
 use Switch\Foundation\Mailer\Facade\Mail;
 use Switch\Foundation\Mailer\Mailable;
+use Switch\Foundation\Queue\ShouldQueue;
 
-class WelcomeMail extends Mailable
+// Normal or Queued Mailable
+class WelcomeMail extends Mailable implements ShouldQueue
 {
     public function __construct(public $user)
     {
@@ -136,7 +139,11 @@ class WelcomeMail extends Mailable
     }
 }
 
+// Automatically pushed to background queue without blocking HTTP response!
 Mail::to('user@example.com')->send(new WelcomeMail($user));
+
+// Or explicit queueing
+Mail::to('user@example.com')->queue($mailable);
 ```
 
 ---
@@ -183,6 +190,63 @@ class UserResource extends JsonResource
 }
 
 return UserResource::make($user);
+```
+
+---
+
+## 📢 8. Real-Time Multi-Channel Notifications & SSE Stream
+
+### Creating a Notification
+```php
+use Switch\Foundation\Notification\Notification;
+use Switch\Foundation\Notification\ShouldQueue;
+
+class OrderShipped extends Notification implements ShouldQueue
+{
+    public function __construct(public string $orderNumber)
+    {
+        parent::__construct();
+    }
+
+    public function via(mixed $notifiable): array
+    {
+        return ['database', 'mail', 'broadcast', 'sse'];
+    }
+
+    public function toArray(mixed $notifiable): array
+    {
+        return [
+            'order_number' => $this->orderNumber,
+            'title' => 'Order Shipped',
+            'message' => "Your order #{$this->orderNumber} is on the way!",
+        ];
+    }
+}
+```
+
+### Sending to Notifiables
+```php
+// Via model
+$user->notify(new OrderShipped('ORD-12345'));
+
+// Unread notifications
+$unread = $user->unreadNotifications();
+$user->markAllNotificationsAsRead();
+
+// On-demand routing without a user model
+Notification::route('mail', 'ops@example.com')->notify(new ServerAlert());
+```
+
+### Real-Time JavaScript Client Bridge (SSE)
+Insert zero-dependency real-time event listening anywhere in your view layout:
+```html
+<?= notification_stream('/api/notifications/stream') ?>
+```
+Listen to real-time notifications in JavaScript:
+```javascript
+window.addEventListener('switch:notification', (e) => {
+    console.log('Real-time notification received:', e.detail);
+});
 ```
 
 ---

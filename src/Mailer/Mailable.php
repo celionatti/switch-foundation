@@ -17,9 +17,40 @@ class Mailable
     private ?string $htmlBody = null;
     private ?string $textBody = null;
     private ?string $viewTemplate = null;
-    private array $viewData = [];
-    private array $attachments = [];
     private array $headers = [];
+
+    public string $queueName = 'default';
+    public int $queueDelay = 0;
+    public int $queueTries = 3;
+
+    public function onQueue(string $queue): static
+    {
+        $this->queueName = $queue;
+        return $this;
+    }
+
+    public function delay(int $seconds): static
+    {
+        $this->queueDelay = $seconds;
+        return $this;
+    }
+
+    public function tries(int $tries): static
+    {
+        $this->queueTries = $tries;
+        return $this;
+    }
+
+    public function shouldQueue(): bool
+    {
+        return $this instanceof \Switch\Foundation\Queue\ShouldQueue;
+    }
+
+    public function queue(): string|int
+    {
+        $job = new \Switch\Foundation\Mailer\Job\SendQueuedMailableJob($this);
+        return \Switch\Foundation\Queue\Facade\Queue::push($job, $this->queueName);
+    }
 
     public function to(string|array $address, ?string $name = null): static
     {

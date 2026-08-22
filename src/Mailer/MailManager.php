@@ -71,6 +71,12 @@ class MailManager
         return $this->transports[$name] = $this->resolve($name);
     }
 
+    public function setTransport(string $name, TransportInterface $transport): static
+    {
+        $this->transports[$name] = $transport;
+        return $this;
+    }
+
     public function extend(string $driver, callable $callback): static
     {
         $this->customTransports[$driver] = $callback;
@@ -92,14 +98,37 @@ class MailManager
         return (new PendingMail($this))->to($address, $name);
     }
 
-    public function send(Mailable $mailable): bool
+    public function send(Mailable $mailable): bool|string|int
     {
         // Apply default From address if not set
         if (empty($mailable->getFrom()) && !empty($this->config['from']['address'])) {
             $mailable->from($this->config['from']['address'], $this->config['from']['name'] ?? null);
         }
 
+        if ($mailable->shouldQueue()) {
+            return $this->queue($mailable);
+        }
+
+        return $this->sendNow($mailable);
+    }
+
+    public function sendNow(Mailable $mailable): bool
+    {
+        if (empty($mailable->getFrom()) && !empty($this->config['from']['address'])) {
+            $mailable->from($this->config['from']['address'], $this->config['from']['name'] ?? null);
+        }
+
         return $this->mailer()->send($mailable);
+    }
+
+    public function queue(Mailable $mailable): string|int
+    {
+        if (empty($mailable->getFrom()) && !empty($this->config['from']['address'])) {
+            $mailable->from($this->config['from']['address'], $this->config['from']['name'] ?? null);
+        }
+
+        $job = new \Switch\Foundation\Mailer\Job\SendQueuedMailableJob($mailable);
+        return \Switch\Foundation\Queue\Facade\Queue::push($job, $mailable->queueName);
     }
 
     public function raw(string $text, callable $callback): bool
