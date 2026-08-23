@@ -299,6 +299,62 @@ class FoundationTest extends TestCase
         $this->assertNotEmpty($encoded);
     }
 
+    public function testImageLoadFromUploadedFileAndRequest(): void
+    {
+        if (!extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension is not loaded.');
+        }
+
+        // Create temporary test image binary
+        $sourceImg = Image::create(100, 100, '#ff0000');
+        $binary = $sourceImg->encode('png');
+
+        $stream = \Switch\Http\Stream::create($binary);
+        $uploadedFile = new \Switch\Http\UploadedFile($stream, strlen($binary), UPLOAD_ERR_OK, 'avatar.png', 'image/png');
+
+        $request = (new ServerRequest('POST', new Uri('https://example.com/upload')))
+            ->withUploadedFiles(['avatar' => $uploadedFile]);
+
+        $this->assertTrue($request->hasFile('avatar'));
+        $file = $request->file('avatar');
+        $this->assertNotNull($file);
+        $this->assertTrue($file->isValid());
+        $this->assertEquals('png', $file->extension());
+
+        // Test Image::load() with UploadedFile directly
+        $loadedImg = Image::load($file);
+        $this->assertEquals(100, $loadedImg->getWidth());
+        $this->assertEquals(100, $loadedImg->getHeight());
+
+        // Test fluent $file->image() helper
+        $fluentImg = $file->image()->fit(50, 50);
+        $this->assertEquals(50, $fluentImg->getWidth());
+        $this->assertEquals(50, $fluentImg->getHeight());
+    }
+
+    public function testStoragePutFileWithUploadedFile(): void
+    {
+        $tempDir = sys_get_temp_dir() . '/switch_test_storage_' . uniqid();
+        $fs = new LocalFilesystem($tempDir, 'https://cdn.example.com/storage');
+
+        $stream = \Switch\Http\Stream::create('Test file contents');
+        $uploadedFile = new \Switch\Http\UploadedFile($stream, 18, UPLOAD_ERR_OK, 'document.txt', 'text/plain');
+
+        $storedPath = $fs->putFile('uploads', $uploadedFile);
+        $this->assertNotEquals(false, $storedPath);
+        $this->assertTrue($fs->exists($storedPath));
+        $this->assertEquals('Test file contents', $fs->get($storedPath));
+
+        $stream2 = \Switch\Http\Stream::create('Custom file contents');
+        $uploadedFile2 = new \Switch\Http\UploadedFile($stream2, 20, UPLOAD_ERR_OK, 'custom.txt', 'text/plain');
+
+        $storedAs = $fs->putFileAs('uploads', $uploadedFile2, 'custom.txt');
+        $this->assertEquals('uploads/custom.txt', $storedAs);
+        $this->assertTrue($fs->exists('uploads/custom.txt'));
+
+        $fs->deleteDirectory('');
+    }
+
     // =========================================================================
     // 5. Mailer Subsystem Tests
     // =========================================================================

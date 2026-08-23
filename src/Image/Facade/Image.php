@@ -15,9 +15,9 @@ use Switch\Foundation\Image\ImageManager;
  */
 class Image
 {
-    public static function load(string $path): ImageInstance
+    public static function load(mixed $source): ImageInstance
     {
-        return ImageManager::getInstance()->load($path);
+        return ImageManager::getInstance()->load($source);
     }
 
     public static function create(int $width, int $height, string $bgColor = '#ffffff'): ImageInstance

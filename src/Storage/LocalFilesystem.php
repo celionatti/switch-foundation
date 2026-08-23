@@ -223,18 +223,50 @@ class LocalFilesystem implements FilesystemInterface
         };
     }
 
-    public function putFile(string $path, string $file): string|false
+    public function putFile(string $path, mixed $file): string|false
     {
-        if (!file_exists($file)) {
-            return false;
+        if ($file instanceof \Psr\Http\Message\UploadedFileInterface) {
+            $clientName = $file->getClientFilename() ?? 'file.bin';
+            $ext = pathinfo($clientName, PATHINFO_EXTENSION);
+            $filename = uniqid('file_', true) . ($ext ? '.' . $ext : '');
+            return $this->putFileAs($path, $file, $filename);
         }
 
-        $ext = pathinfo($file, PATHINFO_EXTENSION);
-        $filename = uniqid('file_', true) . ($ext ? '.' . $ext : '');
-        $target = rtrim($path, '/\\') . '/' . $filename;
+        if (is_string($file) && file_exists($file)) {
+            $ext = pathinfo($file, PATHINFO_EXTENSION);
+            $filename = uniqid('file_', true) . ($ext ? '.' . $ext : '');
+            return $this->putFileAs($path, $file, $filename);
+        }
 
-        if ($this->put($target, file_get_contents($file))) {
-            return $target;
+        return false;
+    }
+
+    public function putFileAs(string $path, mixed $file, string $name): string|false
+    {
+        $target = ($path !== '' ? rtrim($path, '/\\') . '/' : '') . ltrim($name, '/\\');
+        $fullPath = $this->path($target);
+        $this->ensureDirectory(dirname($fullPath));
+
+        if ($file instanceof \Psr\Http\Message\UploadedFileInterface) {
+            if ($file->getError() !== UPLOAD_ERR_OK) {
+                return false;
+            }
+
+            try {
+                $file->moveTo($fullPath);
+                return $target;
+            } catch (\Throwable) {
+                $stream = $file->getStream();
+                $stream->rewind();
+                return $this->put($target, $stream->getContents()) ? $target : false;
+            }
+        }
+
+        if (is_string($file) && file_exists($file)) {
+            $contents = @file_get_contents($file);
+            if ($contents !== false && $this->put($target, $contents)) {
+                return $target;
+            }
         }
 
         return false;

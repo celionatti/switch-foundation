@@ -13,9 +13,9 @@ class ImageManager
         return self::$instance ??= new self();
     }
 
-    public function load(string $path): Image
+    public function load(mixed $source): Image
     {
-        return Image::load($path);
+        return Image::load($source);
     }
 
     public function create(int $width, int $height, string $bgColor = '#ffffff'): Image

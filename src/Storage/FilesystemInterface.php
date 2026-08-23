@@ -42,5 +42,7 @@ interface FilesystemInterface
 
     public function mimeType(string $path): ?string;
 
-    public function putFile(string $path, string $file): string|false;
+    public function putFile(string $path, mixed $file): string|false;
+
+    public function putFileAs(string $path, mixed $file, string $name): string|false;
 }

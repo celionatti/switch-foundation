@@ -26,42 +26,92 @@ class Image
         $this->sourcePath = $sourcePath;
     }
 
-    public static function load(string $path): self
+    public static function load(mixed $source): self
     {
-        if (!file_exists($path)) {
-            throw new InvalidArgumentException("Image file not found at [{$path}].");
-        }
-
         if (!extension_loaded('gd')) {
             throw new RuntimeException("GD PHP extension is required for Image processing.");
         }
 
-        $info = @getimagesize($path);
-        if ($info === false) {
-            throw new InvalidArgumentException("File at [{$path}] is not a valid readable image.");
+        // 1. PSR-7 UploadedFileInterface
+        if ($source instanceof \Psr\Http\Message\UploadedFileInterface) {
+            return self::fromUploadedFile($source);
         }
 
-        $mime = $info['mime'];
-        $resource = match ($mime) {
-            'image/jpeg' => imagecreatefromjpeg($path),
-            'image/png' => imagecreatefrompng($path),
-            'image/gif' => imagecreatefromgif($path),
-            'image/webp' => function_exists('imagecreatefromwebp') ? imagecreatefromwebp($path) : false,
-            'image/avif' => function_exists('imagecreatefromavif') ? imagecreatefromavif($path) : false,
-            default => false,
-        };
+        // 2. PSR-7 StreamInterface
+        if ($source instanceof \Psr\Http\Message\StreamInterface) {
+            return self::fromString((string) $source);
+        }
 
+        // 3. String file path
+        if (is_string($source) && file_exists($source)) {
+            $info = @getimagesize($source);
+            if ($info === false) {
+                throw new InvalidArgumentException("File at [{$source}] is not a valid readable image.");
+            }
+
+            $mime = $info['mime'];
+            $resource = match ($mime) {
+                'image/jpeg' => imagecreatefromjpeg($source),
+                'image/png' => imagecreatefrompng($source),
+                'image/gif' => imagecreatefromgif($source),
+                'image/webp' => function_exists('imagecreatefromwebp') ? imagecreatefromwebp($source) : false,
+                'image/avif' => function_exists('imagecreatefromavif') ? imagecreatefromavif($source) : false,
+                default => false,
+            };
+
+            if ($resource === false) {
+                throw new RuntimeException("Failed to read image from [{$source}] with mime [{$mime}].");
+            }
+
+            // Preserve PNG / WebP alpha channel
+            imagealphablending($resource, true);
+            imagesavealpha($resource, true);
+
+            $image = new self($resource, $source);
+            $image->mime = $mime;
+            return $image;
+        }
+
+        // 4. Binary image string
+        if (is_string($source)) {
+            return self::fromString($source);
+        }
+
+        throw new InvalidArgumentException("Invalid image source provided. Expected file path, UploadedFile, or image binary data.");
+    }
+
+    public static function fromUploadedFile(\Psr\Http\Message\UploadedFileInterface $file): self
+    {
+        if ($file->getError() !== UPLOAD_ERR_OK) {
+            throw new RuntimeException("Cannot load image due to upload error code: " . $file->getError());
+        }
+
+        $stream = $file->getStream();
+        $stream->rewind();
+        $binary = $stream->getContents();
+
+        $image = self::fromString($binary);
+        if ($file->getClientMediaType()) {
+            $image->mime = $file->getClientMediaType();
+        }
+        return $image;
+    }
+
+    public static function fromString(string $binary): self
+    {
+        if (!extension_loaded('gd')) {
+            throw new RuntimeException("GD PHP extension is required for Image processing.");
+        }
+
+        $resource = @imagecreatefromstring($binary);
         if ($resource === false) {
-            throw new RuntimeException("Failed to read image from [{$path}] with mime [{$mime}].");
+            throw new InvalidArgumentException("Failed to decode image from binary data.");
         }
 
-        // Preserve PNG / WebP alpha channel
         imagealphablending($resource, true);
         imagesavealpha($resource, true);
 
-        $image = new self($resource, $path);
-        $image->mime = $mime;
-        return $image;
+        return new self($resource);
     }
 
     public static function create(int $width, int $height, string $bgColor = '#ffffff'): self
