@@ -269,25 +269,52 @@ if (Storage::exists('reports/old.txt')) {
 }
 ```
 
-### 5.2 Public Assets & URLs
+### 5.2 Uploaded Files & Storage Integration
+When handling file uploads from HTML forms or API requests:
 ```php
-// Storing on public disk
-Storage::disk('public')->put('avatars/user_1.png', $imageBinary);
+// In a Controller action:
+public function uploadAvatar(ServerRequestInterface $request)
+{
+    if ($request->hasFile('avatar')) {
+        $file = $request->file('avatar');
 
-// Get public accessible web URL
-$avatarUrl = Storage::disk('public')->url('avatars/user_1.png');
-// Output: /storage/avatars/user_1.png
+        // 1. Store directly with auto-generated UUID name:
+        $path = $file->store('avatars', 'public');
+        // Saved to: storage/app/public/avatars/file_64a...png
+        // Returns: 'avatars/file_64a...png'
+
+        // 2. Or store with custom filename:
+        $customPath = $file->storeAs('avatars', 'user_1.png', 'public');
+
+        // 3. Or use Storage facade:
+        $path = Storage::disk('public')->putFile('avatars', $file);
+
+        // Get public web URL:
+        $publicUrl = Storage::disk('public')->url($path);
+        // Returns: '/storage/avatars/file_64a...png'
+    }
+}
 ```
 
-### 5.3 Directories & File Traversal
-```php
-// List all files in a directory
-$files = Storage::files('documents', recursive: true);
-
-// Create or Delete Directory
-Storage::makeDirectory('invoices/2026');
-Storage::deleteDirectory('temp_uploads');
+### 5.3 Public Storage Symlink (`storage:link`)
+To make files stored in `storage/app/public` accessible from the web browser at `/storage/...`:
+```bash
+php switch storage:link
 ```
+This creates a symbolic link (or Windows NTFS junction) from `public/storage` to `storage/app/public`.
+
+### 5.4 Saving to `public/images` vs `storage/app/public/images`
+- **Method A: Via Public Storage Disk (Recommended for user uploads)**:
+  ```php
+  $file->store('images', 'public');
+  // Saved to: storage/app/public/images/xxx.png
+  // Accessible at: /storage/images/xxx.png via storage:link
+  ```
+- **Method B: Directly to `public/images` directory**:
+  ```php
+  $file->moveTo('public/images/' . $file->getClientFilename());
+  // Accessible at: /images/xxx.png
+  ```
 
 ---
 
@@ -295,18 +322,47 @@ Storage::deleteDirectory('temp_uploads');
 
 Built-in image processing using native PHP GD with fluent chaining, zero external dependencies, alpha-transparency preservation, and modern WebP / AVIF compression.
 
-### 6.1 Loading & Creating Images
+### 6.1 Loading Images from Request, Path, or Binary
 ```php
 use Switch\Foundation\Image\Facade\Image;
 
-// Load an existing image
-$img = Image::load('storage/app/uploads/hero.jpg');
+// 1. Load directly from HTTP Uploaded File:
+$img = Image::load($request->file('avatar'));
 
-// Create a blank image canvas
+// 2. Or using fluent UploadedFile shortcut:
+$img = $request->file('avatar')->image();
+
+// 3. Load from existing path:
+$img = Image::load('storage/app/public/hero.jpg');
+
+// 4. Create a blank image canvas:
 $blank = Image::create(800, 600, '#4f46e5');
 ```
 
-### 6.2 Resizing, Cropping & Smart Fitting
+### 6.2 Full Upload + Resize + Save Workflow Example
+```php
+public function updateProfilePicture(ServerRequestInterface $request)
+{
+    if ($request->hasFile('photo')) {
+        $photo = $request->file('photo');
+
+        // Process and convert directly to optimized WebP
+        $filename = 'avatar_' . auth()->id() . '.webp';
+        $savePath = 'storage/app/public/avatars/' . $filename;
+
+        $photo->image()
+              ->fit(400, 400)                          // Crop & scale to perfect 400x400
+              ->brightness(5)                          // Slight brightness boost
+              ->watermark('resources/watermark.png')   // Optional watermark
+              ->save($savePath, quality: 85);          // Save as optimized WebP
+
+        $avatarUrl = Storage::disk('public')->url('avatars/' . $filename);
+        // /storage/avatars/avatar_1.webp
+    }
+}
+```
+
+### 6.3 Resizing, Cropping & Smart Fitting
 ```php
 // Smart Fit (Aspect-ratio preserving crop & resize to exact dimensions)
 $img->fit(400, 400);
@@ -318,7 +374,7 @@ $img->resize(800, 600, keepAspectRatio: true);
 $img->crop(50, 50, 300, 300);
 ```
 
-### 6.3 Filters, Transformations & Watermarks
+### 6.4 Filters, Transformations & Watermarks
 ```php
 $img->rotate(90)
     ->flip('horizontal')
@@ -328,7 +384,7 @@ $img->rotate(90)
     ->watermark('resources/watermark.png', position: 'bottom-right', opacity: 75, padding: 20);
 ```
 
-### 6.4 Saving & Encoding
+### 6.5 Saving & Encoding
 ```php
 // Save optimized WebP with 85% quality
 $img->save('storage/app/public/hero.webp', quality: 85);
