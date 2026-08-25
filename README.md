@@ -360,6 +360,96 @@ $authors = mock('author', 3);
 
 ---
 
+## ⚡ 11. Advanced Collection & Lazy Stream Engine
+
+An expressive, modern collection engine with 80+ fluent methods, higher-order messaging, hierarchical tree generation, statistical aggregations, and generator-backed lazy streaming:
+
+### Creating Collections
+```php
+use Switch\Foundation\Collection\Collection;
+use Switch\Foundation\Collection\LazyCollection;
+
+// Via global helper
+$collection = collect([1, 2, 3, 4, 5]);
+
+// Generators
+$times = Collection::times(5, fn($i) => ['id' => $i]);
+$range = Collection::range(1, 100);
+```
+
+### Fluent Filtering, Querying & Sorting
+```php
+$users = collect([
+    ['id' => 1, 'name' => 'Alice', 'role' => 'admin', 'points' => 450],
+    ['id' => 2, 'name' => 'Bob', 'role' => 'member', 'points' => 120],
+    ['id' => 3, 'name' => 'Charlie', 'role' => 'member', 'points' => 300],
+]);
+
+// Where operations
+$admins = $users->where('role', 'admin');
+$highPoints = $users->where('points', '>=', 300);
+$staff = $users->whereIn('role', ['admin', 'editor']);
+$cNames = $users->whereLike('name', 'C*');
+
+// Sorting & Deep Pluck
+$topUsers = $users->sortByDesc('points')->pluck('name'); // ['Alice', 'Charlie', 'Bob']
+```
+
+### Transformations, Partitioning & Math
+```php
+// Partition into two collections (e.g. adults and minors)
+[$adults, $minors] = $ages->partition(fn($age) => $age >= 18);
+
+// Deep grouping & keying
+$byRole = $users->groupBy('role');
+
+// Math & Statistical Aggregations
+$totalPoints = $users->sum('points');
+$avgPoints = $users->avg('points');
+$medianPoints = $users->median('points');
+$pct = $users->percentage(fn($u) => $u['points'] > 200); // 66.67%
+```
+
+### Hierarchical Tree Generation (`toTree()` & `flattenTree()`)
+Instantly transform a flat list of parent-child records into a nested hierarchical tree structure in \(O(N)\) time:
+```php
+$categories = collect([
+    ['id' => 1, 'name' => 'Electronics', 'parent_id' => null],
+    ['id' => 2, 'name' => 'Laptops', 'parent_id' => 1],
+    ['id' => 3, 'name' => 'Gaming Laptops', 'parent_id' => 2],
+    ['id' => 4, 'name' => 'Books', 'parent_id' => null],
+]);
+
+// Build nested tree structure
+$tree = $categories->toTree();
+// Output: Electronics (with Laptops -> Gaming Laptops nested in children) and Books
+
+// Flatten tree back to flat collection
+$flat = $tree->flattenTree();
+```
+
+### Higher-Order Messaging
+```php
+// Call method or access property on all items
+$names = $userModels->map->name;
+$activeUsers = $userModels->filter->isActive();
+$userModels->each->delete();
+```
+
+### Generator-Backed Lazy Stream Collections (`LazyCollection`)
+Process massive datasets (millions of rows, huge CSVs) with constant \(O(1)\) memory usage:
+```php
+$stream = LazyCollection::times(1_000_000)
+    ->filter(fn($i) => $i % 2 === 0)
+    ->map(fn($i) => $i * 10)
+    ->take(10);
+
+// Converted to eager collection when needed
+$eager = $stream->eager();
+```
+
+---
+
 ## 🧪 Testing
 
 ```bash
@@ -371,4 +461,5 @@ composer test
 ## 📄 License
 
 The Switch Foundation package is open-source software licensed under the [MIT license](LICENSE).
+
 

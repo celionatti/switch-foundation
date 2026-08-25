@@ -223,3 +223,19 @@ if (!function_exists('fake')) {
         return \Switch\Foundation\Data\Facade\Data::fake($type, ...$args);
     }
 }
+
+if (!function_exists('collect')) {
+    /**
+     * Create a new Collection instance from items.
+     *
+     * @template TKey of array-key
+     * @template TValue
+     * @param mixed $items
+     * @return \Switch\Foundation\Collection\Collection<TKey, TValue>
+     */
+    function collect(mixed $items = []): \Switch\Foundation\Collection\Collection
+    {
+        return new \Switch\Foundation\Collection\Collection($items);
+    }
+}
+
