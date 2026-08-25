@@ -56,6 +56,11 @@ class ApiResponse
         return self::error($message, 404);
     }
 
+    public static function validation(mixed $errors = null, string $message = 'Validation failed'): ResponseInterface
+    {
+        return self::error($message, 422, $errors);
+    }
+
     public static function unauthorized(string $message = 'Unauthenticated'): ResponseInterface
     {
         return self::error($message, 401);

@@ -450,6 +450,113 @@ $eager = $stream->eager();
 
 ---
 
+## ⚡ 11. Switch Actions (Single-Action Architecture)
+
+Switch Actions unite your business logic, validation, authorization, HTTP controller handling, and background job queueing into a single, cohesive, highly testable class:
+
+```php
+namespace App\Actions;
+
+use Switch\Foundation\Action\Action;
+use App\Models\User;
+
+class CreateUserAction extends Action
+{
+    public function authorize(): bool
+    {
+        return true; // or Gate::allows('create', User::class);
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name' => 'required',
+            'email' => 'required|email',
+            'role' => 'nullable',
+        ];
+    }
+
+    public function handle(array $data): User
+    {
+        return User::create($data);
+    }
+}
+```
+
+### 4 Execution Modes in 1 Class:
+```php
+// 1. Direct Service Call
+$user = CreateUserAction::run(['name' => 'John', 'email' => 'john@test.com']);
+
+// 2. Direct HTTP Controller in Route
+Route::post('/users', CreateUserAction::class);
+
+// 3. Queued Background Job
+CreateUserAction::dispatch(['name' => 'Queued John', 'email' => 'john@test.com']);
+
+// 4. CLI / Artisan Command Handler
+$user = (new CreateUserAction())->handle($cliInput);
+```
+
+---
+
+## 🎯 12. Instant Auto-CRUD & Query Filter API Engine
+
+Instantly expose a production-ready REST API with deep filtering, searching, multi-field sorting, pagination, and eager loading for any ORM Model in one line:
+
+```php
+use Switch\Router\Facade\Route;
+use App\Models\Product;
+
+// Exposes 5 RESTful API routes: GET /, GET /{id}, POST /, PUT /{id}, DELETE /{id}
+Route::apiResource('api/v1/products', Product::class, [
+    'rules' => [
+        'title' => 'required',
+        'price' => 'required|numeric',
+    ],
+    'searchable' => ['title', 'description'],
+    'per_page' => 15,
+]);
+```
+
+### Powerful Standardized Query Filter API:
+Clients can use advanced filtering without writing a single line of backend query code:
+- **Filters**: `GET /api/v1/products?filter[category]=laptops&filter[price][gte]=1000`
+- **Operators**: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `like`, `in`, `null`, `not_null`
+- **Full-Text Search**: `GET /api/v1/products?search=macbook`
+- **Sorting**: `GET /api/v1/products?sort=-price,title` (descending price, ascending title)
+- **Field Selection (Sparse Fieldsets)**: `GET /api/v1/products?fields=id,title,price`
+- **Relationship Eager-Loading**: `GET /api/v1/products?include=category,reviews,tags`
+- **Pagination**: `GET /api/v1/products?page=2&per_page=25`
+
+---
+
+## 🏷️ 13. Declarative Behavioral Attributes
+
+Decorate your action handlers and controller methods with native PHP 8.2+ declarative attributes:
+
+```php
+use Switch\Router\Attributes\Get;
+use Switch\Router\Attributes\Post;
+use Switch\Foundation\Attributes\Authorize;
+use Switch\Foundation\Attributes\RateLimit;
+use Switch\Foundation\Attributes\Cached;
+
+class OrderController
+{
+    #[Get('/orders', name: 'orders.index')]
+    #[Cached(ttl: 300, tags: ['orders'])]
+    public function index() { ... }
+
+    #[Post('/orders')]
+    #[Authorize('create_orders')]
+    #[RateLimit('30/minute')]
+    public function store() { ... }
+}
+```
+
+---
+
 ## 🧪 Testing
 
 ```bash
