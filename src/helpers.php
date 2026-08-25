@@ -147,3 +147,79 @@ if (!function_exists('notification_stream')) {
         return \Switch\Foundation\Notification\Realtime\NotificationStream::renderScript($streamUrl);
     }
 }
+
+if (!function_exists('context')) {
+    /**
+     * Get or set a named context value.
+     *
+     * context()                          => ContextManager instance
+     * context('theme')                   => current value of 'theme' context
+     * context('theme.mode')              => dot-notation access
+     * context('theme', 'dark')           => get with default
+     * context(['theme' => [...]])        => provide multiple contexts
+     */
+    function context(string|array|null $name = null, mixed $default = null): mixed
+    {
+        $facade = \Switch\Foundation\Context\Facade\Context::class;
+
+        if ($name === null) {
+            return $facade::getManager();
+        }
+
+        if (is_array($name)) {
+            $facade::getManager()->provideMany($name);
+            return $facade::getManager();
+        }
+
+        return $facade::use($name, $default);
+    }
+}
+
+if (!function_exists('data')) {
+    /**
+     * Load or retrieve static data by source key with dot-notation.
+     *
+     * data()                   => DataManager instance
+     * data('countries')        => load entire dataset
+     * data('countries.US')     => dot-notation access
+     */
+    function data(string|null $key = null, mixed $default = null): mixed
+    {
+        $facade = \Switch\Foundation\Data\Facade\Data::class;
+
+        if ($key === null) {
+            return $facade::getManager();
+        }
+
+        return $facade::get($key, $default);
+    }
+}
+
+if (!function_exists('mock')) {
+    /**
+     * Generate mock data records using registered blueprints.
+     *
+     * mock('user')              => 1 mock user record
+     * mock('user', 5)           => 5 mock user records
+     * mock('product', 3, [...]) => 3 products with overrides
+     */
+    function mock(string $blueprint, int $count = 1, array $overrides = []): array
+    {
+        return \Switch\Foundation\Data\Facade\Data::mock($blueprint, $count, $overrides);
+    }
+}
+
+if (!function_exists('fake')) {
+    /**
+     * Generate a single fake value by type.
+     *
+     * fake('name')     => random name
+     * fake('email')    => random email
+     * fake('uuid')     => random UUID
+     * fake()           => MockGenerator instance
+     */
+    function fake(?string $type = null, ...$args): mixed
+    {
+        return \Switch\Foundation\Data\Facade\Data::fake($type, ...$args);
+    }
+}

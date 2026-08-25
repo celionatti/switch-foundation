@@ -251,6 +251,115 @@ window.addEventListener('switch:notification', (e) => {
 
 ---
 
+## 🌐 9. React-like Context API (Global & Scoped State Management)
+
+Manage application state with React-inspired scoped context providers, state mutation, and subscribers:
+
+### Providing & Consuming State
+```php
+use Switch\Foundation\Context\Facade\Context;
+
+// 1. Global state
+Context::provide('theme', ['mode' => 'dark', 'primary' => '#6366f1']);
+
+// 2. Scoped Provider (automatically restores previous state upon callback exit)
+$output = Context::provide('cart', $cartData, function ($cart) {
+    return View::render('checkout');
+});
+
+// 3. Dot-notation consumption
+$mode = Context::use('theme.mode'); // 'dark'
+$mode = context('theme.mode');       // Using global helper
+```
+
+### State Mutations & Subscriptions
+```php
+// Mutate state with previous state callback
+Context::mutate('counter', fn($prev) => ['count' => ($prev['count'] ?? 0) + 1]);
+
+// Subscribe to state changes
+$unsubscribe = Context::subscribe('cart', function ($newCart, $oldCart) {
+    Log::info('Cart updated', ['items' => count($newCart['items'])]);
+});
+```
+
+### View Template Syntax
+```html
+<!-- Provider -->
+<context name="theme" :value="['mode' => 'dark']">
+    <!-- Consumer inside any nested child component -->
+    <use-context name="theme" as="$theme" />
+    <p>Active mode: {{ $theme.mode }}</p>
+</context>
+```
+
+### Switch Live JavaScript Client Bridge
+```javascript
+// Access or mutate context on the frontend reactively
+SwitchLive.useContext('theme.mode'); // 'dark'
+SwitchLive.setContext('theme.mode', 'light');
+
+// Elements automatically bind and re-render
+// <span data-bind="theme.mode"></span>
+```
+
+---
+
+## 📊 10. Static Datasets & Mock Data Engine
+
+Load static reference data (JSON, PHP, CSV) and generate realistic mock entities for rapid prototyping without a database:
+
+### Loading Static Datasets
+```php
+use Switch\Foundation\Data\Facade\Data;
+
+// Loads data/countries.json or data/countries.php
+$countries = Data::get('countries');
+$usState = Data::get('countries.US.name');
+
+// Collection querying helpers
+$proPlan = Data::find('pricing_plans', 'pro');
+$activeUsers = Data::where('users', 'active', true);
+$names = Data::pluck('plans', 'name');
+```
+
+### Generating Mock Records & Custom Blueprints
+```php
+// Generate realistic mock records instantly
+$users = Data::mock('user', 5);
+$products = Data::mock('product', 10, ['category' => 'Electronics']);
+
+// Register custom entity blueprints
+Data::define('author', function ($i, $faker) {
+    return [
+        'id' => $i,
+        'name' => $faker->name(),
+        'email' => $faker->email(),
+        'avatar' => $faker->avatar(),
+        'bio' => $faker->paragraph(),
+    ];
+});
+
+$authors = mock('author', 3);
+```
+
+### View Template Integration
+```html
+<!-- Load static dataset -->
+<data source="countries" as="$countries" />
+
+<!-- Generate mock records directly in view -->
+<data mock="product" count="6" as="$products" />
+
+<foreach items="$products" as="$product">
+    <x-card title="$product.title">
+        <p>${{ $product.price }}</p>
+    </x-card>
+</foreach>
+```
+
+---
+
 ## 🧪 Testing
 
 ```bash
@@ -262,3 +371,4 @@ composer test
 ## 📄 License
 
 The Switch Foundation package is open-source software licensed under the [MIT license](LICENSE).
+
