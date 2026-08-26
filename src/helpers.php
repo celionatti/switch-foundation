@@ -34,6 +34,16 @@ if (!function_exists('auth')) {
     }
 }
 
+if (!function_exists('passwordless')) {
+    /**
+     * Get the PasswordlessManager instance.
+     */
+    function passwordless(): \Switch\Foundation\Auth\Passwordless\PasswordlessManager
+    {
+        return \Switch\Foundation\Auth\Passwordless\PasswordlessManager::getInstance();
+    }
+}
+
 if (!function_exists('cache')) {
     /**
      * Get / set cache values or retrieve the CacheManager instance.

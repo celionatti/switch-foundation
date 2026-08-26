@@ -69,6 +69,26 @@ class Auth
         AuthManager::getInstance()->setUser($user);
     }
 
+    public static function passwordless(): \Switch\Foundation\Auth\Passwordless\PasswordlessManager
+    {
+        return \Switch\Foundation\Auth\Passwordless\PasswordlessManager::getInstance();
+    }
+
+    public static function sendLoginLink(string $email, ?int $expiresInMinutes = null): bool|string|int
+    {
+        return self::passwordless()->sendLoginLink($email, $expiresInMinutes);
+    }
+
+    public static function sendRegistrationLink(string $email, array $data = [], ?int $expiresInMinutes = null): bool|string|int
+    {
+        return self::passwordless()->sendRegistrationLink($email, $data, $expiresInMinutes);
+    }
+
+    public static function sendRecoveryLink(string $email, ?int $expiresInMinutes = null): bool|string|int
+    {
+        return self::passwordless()->sendRecoveryLink($email, $expiresInMinutes);
+    }
+
     public static function __callStatic(string $method, array $arguments): mixed
     {
         return AuthManager::getInstance()->$method(...$arguments);
