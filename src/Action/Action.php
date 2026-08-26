@@ -75,7 +75,7 @@ abstract class Action
             if ($validation['failed']) {
                 return ApiResponse::validation($validation['errors'], 'Validation failed');
             }
-            $data = $validation['validated'];
+            $data = array_merge($data, $validation['validated']);
         }
 
         // 4. Run the core handle() method
@@ -108,6 +108,24 @@ abstract class Action
     public static function run(mixed ...$arguments): mixed
     {
         $instance = new static();
+
+        if (!$instance->authorize()) {
+            throw new \RuntimeException('Unauthorized action execution');
+        }
+
+        if (isset($arguments[0]) && is_array($arguments[0])) {
+            $rules = $instance->rules();
+            if (!empty($rules)) {
+                $validation = $instance->validateData($arguments[0], $rules, $instance->messages());
+                if ($validation['failed']) {
+                    $firstErrors = reset($validation['errors']);
+                    $firstError = is_array($firstErrors) ? reset($firstErrors) : (string) $firstErrors;
+                    throw new \InvalidArgumentException($firstError ?: 'Validation failed');
+                }
+                $arguments[0] = array_merge($arguments[0], $validation['validated']);
+            }
+        }
+
         return $instance->handle(...$arguments);
     }
 

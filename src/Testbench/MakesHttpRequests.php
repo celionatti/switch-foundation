@@ -160,14 +160,16 @@ trait MakesHttpRequests
                 }
 
                 if (is_callable($handler)) {
-                    $result = $handler($request, $match->getParameters());
+                    $result = $this->invokeCallable($handler, $request, $match->getParameters());
                 } elseif (is_array($handler) && count($handler) === 2) {
                     [$cls, $mtd] = $handler;
                     $inst = is_object($cls) ? $cls : new $cls();
-                    $result = $inst->$mtd($request, $match->getParameters());
+                    $result = $this->invokeMethod($inst, $mtd, $request, $match->getParameters());
                 } elseif (is_string($handler) && class_exists($handler)) {
                     $inst = new $handler();
-                    $result = $inst($request, $match->getParameters());
+                    $result = is_callable($inst)
+                        ? $this->invokeCallable($inst, $request, $match->getParameters())
+                        : $inst($request, $match->getParameters());
                 } else {
                     $result = new Response(500, [], Stream::create('Invalid Handler'));
                 }
@@ -190,5 +192,62 @@ trait MakesHttpRequests
         }
 
         return new Response(200, [], Stream::create('OK'));
+    }
+
+    protected function invokeMethod(object $instance, string $method, ServerRequestInterface $request, array $routeParams): mixed
+    {
+        $ref = new \ReflectionMethod($instance, $method);
+        $args = $this->resolveReflectionParameters($ref->getParameters(), $request, $routeParams);
+        return $instance->$method(...$args);
+    }
+
+    protected function invokeCallable(callable $callable, ServerRequestInterface $request, array $routeParams): mixed
+    {
+        if (is_array($callable)) {
+            return $this->invokeMethod($callable[0], $callable[1], $request, $routeParams);
+        }
+
+        $ref = is_object($callable) && !$callable instanceof \Closure
+            ? new \ReflectionMethod($callable, '__invoke')
+            : new \ReflectionFunction($callable);
+
+        $args = $this->resolveReflectionParameters($ref->getParameters(), $request, $routeParams);
+        return $callable(...$args);
+    }
+
+    /**
+     * @param array<\ReflectionParameter> $parameters
+     */
+    protected function resolveReflectionParameters(array $parameters, ServerRequestInterface $request, array $routeParams): array
+    {
+        $args = [];
+        foreach ($parameters as $param) {
+            $paramName = $param->getName();
+            $type = $param->getType();
+            $typeName = $type instanceof \ReflectionNamedType ? $type->getName() : null;
+
+            if ($typeName && (is_subclass_of($typeName, ServerRequestInterface::class) || $typeName === ServerRequestInterface::class)) {
+                $args[] = $request;
+            } elseif ($paramName === 'request') {
+                $args[] = $request;
+            } elseif ($paramName === 'params' && $typeName === 'array') {
+                $args[] = $routeParams;
+            } elseif (isset($routeParams[$paramName])) {
+                $val = $routeParams[$paramName];
+                if ($typeName === 'int') {
+                    $val = (int) $val;
+                } elseif ($typeName === 'float') {
+                    $val = (float) $val;
+                } elseif ($typeName === 'bool') {
+                    $val = (bool) $val;
+                }
+                $args[] = $val;
+            } elseif ($param->isDefaultValueAvailable()) {
+                $args[] = $param->getDefaultValue();
+            } else {
+                $args[] = $request;
+            }
+        }
+        return $args;
     }
 }
