@@ -185,6 +185,25 @@ Route::post('/articles/{id}/delete', [ArticleController::class, 'delete'])
     ->middleware(new Authorize('delete-article'));
 ```
 
+### 3.6 Passwordless Authentication (Magic Links & Recovery)
+
+Switch Foundation includes a complete backend engine for passwordless login, registration, and account recovery via single-use magic links sent to user email addresses:
+
+```php
+use Switch\Foundation\Auth\Passwordless\PasswordlessRoutes;
+use Switch\Foundation\Auth\Facade\Auth;
+
+// 1. Send magic links programmatically
+Auth::sendLoginLink('alice@example.com');
+Auth::sendRegistrationLink('newbie@example.com', ['name' => 'New User']);
+Auth::sendRecoveryLink('alice@example.com');
+
+// 2. Register complete authentication routes (Login, Register, Recovery, Verify, Logout)
+PasswordlessRoutes::register(App\Controllers\AuthController::class);
+```
+
+> 📖 **Full Documentation**: See [Passwordless Auth Guide](PASSWORDLESS_AUTH_GUIDE.md) for custom view implementation, controller hooks, rate limiting, and JSON API configuration.
+
 ---
 
 ## 4. Subsystem: ⚡ Cache Engine & Tagging
