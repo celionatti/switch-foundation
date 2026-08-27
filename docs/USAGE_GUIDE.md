@@ -758,6 +758,7 @@ CREATE TABLE `notifications` (
 | `notify(mixed $notifiables, Notification $notification, ?array $channels = null)` | `void` | Dispatch notification to notifiables. |
 | `notification()` | `NotificationManager` | Access the Notification Manager. |
 | `notification_stream(string $streamUrl = '/api/notifications/stream')` | `string` | Render zero-config client-side SSE script. |
+| `two_factor()` | `TwoFactorManager` | Access Two-Factor Authentication (2FA / TOTP) manager. |
 | `context(string\|array\|null $name = null, mixed $default = null)` | `mixed` | Get, set, or batch-provide scoped context values. |
 | `context_share(string\|array $name, mixed $value = null)` | `mixed` | Provide context AND mark it for frontend client synchronization. |
 | `data(string\|null $key = null, mixed $default = null)` | `mixed` | Access or query static datasets with dot notation. |
@@ -768,6 +769,7 @@ CREATE TABLE `notifications` (
 
 ## 📚 Dedicated Subsystem Manuals
 
+- [**Live SPA: Drag & Drop Sorting & Cross-Table Transfers**](../../live/docs/DRAG_DROP_SORTING_GUIDE.md) — 60 FPS optimistic UI reordering, Kanban board column transfers, grab handles, and high-performance SQL batch updates.
 - [**Context API, Data & Mocking Manual**](CONTEXT_DATA_MOCK_GUIDE.md) — Multi-tenancy, audit trails, request tracing, provider boundaries, static data, and mock blueprints.
 - [**Passwordless Authentication Guide**](PASSWORDLESS_AUTH_GUIDE.md) — Magic link generation, single-use token lifecycle, rate limiting, and headless controllers.
 
@@ -778,4 +780,4 @@ CREATE TABLE `notifications` (
 ```bash
 composer test
 ```
-All **396 / 396 tests** pass with 100% test coverage.
+All **408 / 408 tests** pass with 100% test coverage.
