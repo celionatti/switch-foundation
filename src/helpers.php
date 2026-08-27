@@ -44,6 +44,16 @@ if (!function_exists('passwordless')) {
     }
 }
 
+if (!function_exists('two_factor')) {
+    /**
+     * Get the TwoFactorManager instance.
+     */
+    function two_factor(): \Switch\Foundation\Auth\TwoFactor\TwoFactorManager
+    {
+        return \Switch\Foundation\Auth\TwoFactor\TwoFactorManager::getInstance();
+    }
+}
+
 if (!function_exists('cache')) {
     /**
      * Get / set cache values or retrieve the CacheManager instance.
