@@ -748,6 +748,7 @@ CREATE TABLE `notifications` (
 | Helper Function | Return Type | Description |
 | :--- | :--- | :--- |
 | `auth(?string $guard = null)` | `AuthManager\|GuardInterface\|AuthenticatableInterface\|null` | Access Auth manager, specific guard, or active logged-in user. |
+| `passwordless()` | `PasswordlessManager` | Access Passwordless authentication manager. |
 | `cache(string\|array\|null $key = null, mixed $default = null)` | `mixed` | Get/set cached values or retrieve `CacheManager`. |
 | `storage(?string $disk = null)` | `StorageManager\|FilesystemInterface` | Access storage disk or `StorageManager`. |
 | `image(string $path)` | `Image` | Load an image for fluent manipulation and conversion. |
@@ -757,6 +758,18 @@ CREATE TABLE `notifications` (
 | `notify(mixed $notifiables, Notification $notification, ?array $channels = null)` | `void` | Dispatch notification to notifiables. |
 | `notification()` | `NotificationManager` | Access the Notification Manager. |
 | `notification_stream(string $streamUrl = '/api/notifications/stream')` | `string` | Render zero-config client-side SSE script. |
+| `context(string\|array\|null $name = null, mixed $default = null)` | `mixed` | Get, set, or batch-provide scoped context values. |
+| `context_share(string\|array $name, mixed $value = null)` | `mixed` | Provide context AND mark it for frontend client synchronization. |
+| `data(string\|null $key = null, mixed $default = null)` | `mixed` | Access or query static datasets with dot notation. |
+| `mock(string $blueprint, int $count = 1, array $overrides = [])` | `array` | Generate mock data records from registered blueprints. |
+| `collect(mixed $items = [])` | `Collection` | Create a fluent Collection instance. |
+
+---
+
+## 📚 Dedicated Subsystem Manuals
+
+- [**Context API, Data & Mocking Manual**](CONTEXT_DATA_MOCK_GUIDE.md) — Multi-tenancy, audit trails, request tracing, provider boundaries, static data, and mock blueprints.
+- [**Passwordless Authentication Guide**](PASSWORDLESS_AUTH_GUIDE.md) — Magic link generation, single-use token lifecycle, rate limiting, and headless controllers.
 
 ---
 
@@ -765,4 +778,4 @@ CREATE TABLE `notifications` (
 ```bash
 composer test
 ```
-All **248 / 248 tests** pass with 100% test coverage.
+All **396 / 396 tests** pass with 100% test coverage.
