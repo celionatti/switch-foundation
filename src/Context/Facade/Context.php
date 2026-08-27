@@ -39,6 +39,11 @@ class Context
         return self::getManager()->provide($name, $value, $callback);
     }
 
+    public static function share(string $name, mixed $value, ?callable $callback = null): mixed
+    {
+        return self::getManager()->share($name, $value, $callback);
+    }
+
     public static function provideMany(array $contexts, ?callable $callback = null): mixed
     {
         return self::getManager()->provideMany($contexts, $callback);

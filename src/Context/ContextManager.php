@@ -52,6 +52,21 @@ class ContextManager
     }
 
     /**
+     * Share a context value with both server scope and client-side frontend sync.
+     *
+     * @template T
+     * @param string $name
+     * @param mixed $value
+     * @param (callable(mixed, Context): T)|null $callback
+     * @return ($callback is null ? Context : T)
+     */
+    public function share(string $name, mixed $value, ?callable $callback = null): mixed
+    {
+        $this->markClient($name, true);
+        return $this->provide($name, $value, $callback);
+    }
+
+    /**
      * Provide multiple contexts simultaneously for a callback scope.
      *
      * @template T

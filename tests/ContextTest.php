@@ -115,4 +115,17 @@ class ContextTest extends TestCase
         $this->assertEquals(['cart' => ['items' => 3]], $payload);
         $this->assertArrayNotHasKey('secret', $payload);
     }
+
+    public function testContextShareMethodAndHelper(): void
+    {
+        ContextFacade::clear();
+        ContextFacade::share('user', ['name' => 'John', 'role' => 'admin']);
+        context_share('theme', 'dark');
+
+        $payload = ContextFacade::getClientPayload();
+        $this->assertArrayHasKey('user', $payload);
+        $this->assertEquals('John', $payload['user']['name']);
+        $this->assertArrayHasKey('theme', $payload);
+        $this->assertEquals('dark', $payload['theme']);
+    }
 }

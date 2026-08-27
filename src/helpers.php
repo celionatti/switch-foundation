@@ -185,6 +185,25 @@ if (!function_exists('context')) {
     }
 }
 
+if (!function_exists('context_share')) {
+    /**
+     * Provide a context value and mark it for frontend client synchronization.
+     */
+    function context_share(string|array $name, mixed $value = null): mixed
+    {
+        $facade = \Switch\Foundation\Context\Facade\Context::class;
+
+        if (is_array($name)) {
+            foreach ($name as $k => $v) {
+                $facade::share($k, $v);
+            }
+            return $facade::getManager();
+        }
+
+        return $facade::share($name, $value);
+    }
+}
+
 if (!function_exists('data')) {
     /**
      * Load or retrieve static data by source key with dot-notation.
